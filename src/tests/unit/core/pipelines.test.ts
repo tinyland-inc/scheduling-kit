@@ -81,6 +81,7 @@ const createMockScheduler = (): SchedulingAdapter => ({
 
 const createMockPaymentAdapter = (name = 'cash'): PaymentAdapter => ({
   name,
+  displayName: name.charAt(0).toUpperCase() + name.slice(1),
   isAvailable: vi.fn(() => TE.right(true)),
   createIntent: vi.fn(() => TE.right(createPaymentIntent())),
   capturePayment: vi.fn(() => TE.right(createPaymentResult())),
@@ -98,18 +99,20 @@ const createMockPaymentAdapter = (name = 'cash'): PaymentAdapter => ({
   verifyWebhook: vi.fn(() => TE.right(true)),
   parseWebhook: vi.fn(() =>
     TE.right({
-      type: 'payment.captured',
+      type: 'payment.completed' as const,
       intentId: 'pi_test_12345',
       transactionId: 'txn_test_12345',
       amount: 20000,
       currency: 'USD',
       timestamp: new Date().toISOString(),
+      raw: '{}',
     })
   ),
   getClientConfig: () => ({
-    enabled: true,
+    name: 'cash',
     displayName: 'Cash',
-    instructions: 'Pay in cash at appointment',
+    environment: 'production' as const,
+    supportedCurrencies: ['USD'],
   }),
 });
 
@@ -155,7 +158,7 @@ describe('completeBookingWithAltPayment', () => {
   });
 
   it('returns error for unknown payment method', async () => {
-    input.paymentMethod = 'unknown';
+    input = { ...input, paymentMethod: 'unknown' };
 
     const error = await expectLeftTagAsync(
       completeBookingWithAltPayment(ctx, input),
@@ -169,7 +172,7 @@ describe('completeBookingWithAltPayment', () => {
   });
 
   it('returns validation error for invalid request', async () => {
-    input.request = { ...input.request, client: { ...input.request.client, email: 'invalid' } };
+    input = { ...input, request: { ...input.request, client: { ...input.request.client, email: 'invalid' } } };
 
     const error = await expectLeftTagAsync(
       completeBookingWithAltPayment(ctx, input),

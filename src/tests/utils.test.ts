@@ -34,7 +34,7 @@ describe('Promise Converters', () => {
     it('converts successful promise to Right', async () => {
       const result = await fromPromise(
         () => Promise.resolve(42),
-        () => Errors.infrastructure('TEST', 'Should not fail')
+        () => Errors.infrastructure('TEST' as any, 'Should not fail')
       )();
 
       expect(E.isRight(result)).toBe(true);
@@ -46,13 +46,13 @@ describe('Promise Converters', () => {
     it('converts rejected promise to Left with mapped error', async () => {
       const result = await fromPromise(
         () => Promise.reject(new Error('boom')),
-        (e) => Errors.infrastructure('TEST', String(e))
+        (e) => Errors.infrastructure('TEST' as any, String(e))
       )();
 
       expect(E.isLeft(result)).toBe(true);
       if (E.isLeft(result)) {
         expect(result.left._tag).toBe('InfrastructureError');
-        expect(result.left.message).toContain('boom');
+        expect((result.left as any).message).toContain('boom');
       }
     });
 
@@ -64,7 +64,7 @@ describe('Promise Converters', () => {
           called = true;
           return 'done';
         },
-        () => Errors.infrastructure('TEST', 'fail')
+        () => Errors.infrastructure('TEST' as any, 'fail')
       );
 
       expect(called).toBe(false); // lazy
@@ -77,7 +77,7 @@ describe('Promise Converters', () => {
     it('creates a function that returns TaskEither', async () => {
       const fetchUser = fromPromiseK(
         async (id: string) => ({ id, name: 'Test' }),
-        () => Errors.infrastructure('HTTP', 'Failed')
+        () => Errors.infrastructure('HTTP' as any, 'Failed')
       );
 
       const result = await fetchUser('123')();
@@ -150,8 +150,8 @@ describe('Validation', () => {
       expect(E.isLeft(result)).toBe(true);
       if (E.isLeft(result)) {
         expect(result.left._tag).toBe('ValidationError');
-        expect(result.left.message).toContain('email');
-        expect(result.left.message).toContain('age');
+        expect((result.left as any).message).toContain('email');
+        expect((result.left as any).message).toContain('age');
       }
     });
   });
@@ -180,7 +180,7 @@ describe('Retry & Resilience', () => {
       const task: TE.TaskEither<ReturnType<typeof Errors.infrastructure>, number> = () => {
         attempts++;
         if (attempts < 3) {
-          return Promise.resolve(E.left(Errors.infrastructure('NET', 'Network error')));
+          return Promise.resolve(E.left(Errors.infrastructure('NET' as any, 'Network error')));
         }
         return Promise.resolve(E.right(42));
       };
@@ -199,7 +199,7 @@ describe('Retry & Resilience', () => {
       let attempts = 0;
       const task: TE.TaskEither<ReturnType<typeof Errors.infrastructure>, number> = () => {
         attempts++;
-        return Promise.resolve(E.left(Errors.infrastructure('NET', 'Always fails')));
+        return Promise.resolve(E.left(Errors.infrastructure('NET' as any, 'Always fails')));
       };
 
       const retried = withRetry({ maxAttempts: 2, initialDelayMs: 10 })(task);
@@ -245,7 +245,7 @@ describe('Retry & Resilience', () => {
       expect(E.isLeft(result)).toBe(true);
       if (E.isLeft(result)) {
         expect(result.left._tag).toBe('InfrastructureError');
-        expect(result.left.code).toBe('TIMEOUT');
+        expect((result.left as any).code).toBe('TIMEOUT');
       }
     });
 
@@ -253,13 +253,13 @@ describe('Retry & Resilience', () => {
       const slowTask: TE.TaskEither<never, number> = () =>
         new Promise((resolve) => setTimeout(() => resolve(E.right(42)), 500));
 
-      const customError = Errors.infrastructure('CUSTOM_TIMEOUT', 'Too slow!');
+      const customError = Errors.infrastructure('CUSTOM_TIMEOUT' as any, 'Too slow!');
       const timed = withTimeout<number>(10, customError)(slowTask);
       const result = await timed();
 
       expect(E.isLeft(result)).toBe(true);
       if (E.isLeft(result)) {
-        expect(result.left.code).toBe('CUSTOM_TIMEOUT');
+        expect((result.left as any).code).toBe('CUSTOM_TIMEOUT');
       }
     });
   });
@@ -360,9 +360,9 @@ describe('Sequencing Helpers', () => {
 describe('Error Recovery', () => {
   describe('recoverWith', () => {
     it('recovers from matching error', async () => {
-      const task = TE.left(Errors.infrastructure('NOT_FOUND', 'Missing'));
+      const task = TE.left(Errors.infrastructure('NOT_FOUND' as any, 'Missing'));
       const recovered = recoverWith<number>(
-        (e) => e._tag === 'InfrastructureError' && e.code === 'NOT_FOUND',
+        (e) => e._tag === 'InfrastructureError' && (e as any).code === 'NOT_FOUND',
         0
       )(task);
 
@@ -387,15 +387,15 @@ describe('Error Recovery', () => {
 
   describe('mapError', () => {
     it('transforms errors', async () => {
-      const task = TE.left(Errors.infrastructure('NET', 'Network'));
+      const task = TE.left(Errors.infrastructure('NET' as any, 'Network'));
       const mapped = mapError(
-        (e) => Errors.infrastructure('WRAPPED', `Wrapped: ${e.message}`)
+        (e) => Errors.infrastructure('WRAPPED' as any, `Wrapped: ${(e as any).message}`)
       )(task);
 
       const result = await mapped();
       expect(E.isLeft(result)).toBe(true);
       if (E.isLeft(result)) {
-        expect(result.left.message).toContain('Wrapped:');
+        expect((result.left as any).message).toContain('Wrapped:');
       }
     });
   });

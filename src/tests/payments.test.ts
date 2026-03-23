@@ -19,7 +19,7 @@ describe('Manual Payment Adapters', () => {
       const adapter = createManualPaymentAdapter(
         {
           type: 'manual',
-          methods: ['custom'],
+          methods: ['custom' as any],
           instructions: { custom: 'Custom instructions' },
         },
         'custom',
@@ -33,7 +33,7 @@ describe('Manual Payment Adapters', () => {
     describe('createIntent', () => {
       it('creates payment intent with correct structure', async () => {
         const adapter = createManualPaymentAdapter(
-          { type: 'manual', methods: ['test'] },
+          { type: 'manual', methods: ['test' as any] },
           'test',
           'Test'
         );
@@ -58,7 +58,7 @@ describe('Manual Payment Adapters', () => {
 
       it('generates unique intent IDs', async () => {
         const adapter = createManualPaymentAdapter(
-          { type: 'manual', methods: ['test'] },
+          { type: 'manual', methods: ['test' as any] },
           'test',
           'Test'
         );
@@ -68,6 +68,7 @@ describe('Manual Payment Adapters', () => {
           const result = await adapter.createIntent({
             amount: 1000,
             currency: 'USD',
+            description: 'test payment',
             idempotencyKey: `idem_${i}`,
           })();
 
@@ -83,7 +84,7 @@ describe('Manual Payment Adapters', () => {
     describe('capturePayment', () => {
       it('returns captured payment result', async () => {
         const adapter = createManualPaymentAdapter(
-          { type: 'manual', methods: ['test'] },
+          { type: 'manual', methods: ['test' as any] },
           'test',
           'Test'
         );
@@ -103,7 +104,7 @@ describe('Manual Payment Adapters', () => {
     describe('refund', () => {
       it('creates refund record', async () => {
         const adapter = createManualPaymentAdapter(
-          { type: 'manual', methods: ['test'] },
+          { type: 'manual', methods: ['test' as any] },
           'test',
           'Test'
         );
@@ -167,8 +168,8 @@ describe('Manual Payment Adapters', () => {
       const adapter = createCashAdapter();
       const config = adapter.getClientConfig();
 
-      expect(config.instructions).toBeDefined();
-      expect(config.instructions?.cash).toContain('appointment');
+      expect((config as any).instructions).toBeDefined();
+      expect((config as any).instructions?.cash).toContain('appointment');
     });
   });
 
@@ -186,7 +187,7 @@ describe('Manual Payment Adapters', () => {
       const adapter = createZelleAdapter(zelleEmail);
       const config = adapter.getClientConfig();
 
-      expect(config.instructions?.zelle).toContain(zelleEmail);
+      expect((config as any).instructions?.zelle).toContain(zelleEmail);
     });
   });
 
@@ -202,7 +203,7 @@ describe('Manual Payment Adapters', () => {
       const adapter = createCheckAdapter('Test Business');
       const config = adapter.getClientConfig();
 
-      expect(config.instructions?.check).toContain('Test Business');
+      expect((config as any).instructions?.check).toContain('Test Business');
     });
   });
 });
@@ -215,7 +216,7 @@ describe('Payment Adapter Interface Compliance', () => {
     {
       name: 'custom',
       adapter: createManualPaymentAdapter(
-        { type: 'manual', methods: ['custom'] },
+        { type: 'manual', methods: ['custom' as any] },
         'custom',
         'Custom'
       ),
@@ -262,7 +263,7 @@ describe('Payment Adapter Interface Compliance', () => {
 
 describe('Property-based Payment Tests', () => {
   const adapter = createManualPaymentAdapter(
-    { type: 'manual', methods: ['test'] },
+    { type: 'manual', methods: ['test' as any] },
     'test',
     'Test'
   );
@@ -276,6 +277,7 @@ describe('Property-based Payment Tests', () => {
             const result = await adapter.createIntent({
               amount,
               currency: 'USD',
+              description: 'test payment',
               idempotencyKey: `idem_${amount}_${Date.now()}`,
             })();
 
@@ -299,6 +301,7 @@ describe('Property-based Payment Tests', () => {
             const result = await adapter.createIntent({
               amount: 1000,
               currency,
+              description: 'test payment',
               idempotencyKey: `idem_${currency}_${Date.now()}`,
             })();
 
@@ -348,6 +351,7 @@ describe('Payment Flow Integration', () => {
     const intentResult = await adapter.createIntent({
       amount: 10000,
       currency: 'USD',
+      description: 'test payment',
       idempotencyKey: 'idem_refund_test',
     })();
 
@@ -387,6 +391,6 @@ describe('Client Config', () => {
     const config = adapter.getClientConfig();
 
     expect(config.name).toBe('zelle');
-    expect(config.instructions?.zelle).toContain('test@example.com');
+    expect((config as any).instructions?.zelle).toContain('test@example.com');
   });
 });

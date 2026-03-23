@@ -3,6 +3,13 @@ name: Publish
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   publish-npm:
@@ -10,7 +17,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -25,22 +31,28 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build
         run: pnpm build
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks --access public
+        if: ${{ github.event_name == 'release' || github.event.inputs.dry_run != 'true' }}
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  publish-gpr:
+      - name: Publish dry run
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: npm publish --access public --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-github:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -53,14 +65,22 @@ jobs:
           node-version: 20
           cache: pnpm
           registry-url: https://npm.pkg.github.com
+          scope: '@tummycrypt'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build
         run: pnpm build
 
       - name: Publish to GitHub Packages
-        run: pnpm publish --no-git-checks --access public
+        if: ${{ github.event_name == 'release' || github.event.inputs.dry_run != 'true' }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish dry run
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: npm publish --dry-run
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

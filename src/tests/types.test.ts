@@ -250,7 +250,7 @@ describe('Property-based Error Tests', () => {
       fc.tuple(
         fc.constantFrom('NETWORK', 'TIMEOUT', 'REDIS', 'UNKNOWN' as const),
         fc.string()
-      ).map(([code, msg]) => Errors.infrastructure(code, msg))
+      ).map(([code, msg]) => Errors.infrastructure(code as any, msg))
     );
 
     it('all errors have _tag property', () => {

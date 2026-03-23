@@ -78,7 +78,7 @@ export interface ScrapedTimeSlot {
 // =============================================================================
 
 export class AcuityScraper {
-  private config: Required<ScraperConfig>;
+  private config: ScraperConfig & { headless: boolean; timeout: number; userAgent: string };
   private browser: Browser | null = null;
 
   constructor(config: ScraperConfig) {

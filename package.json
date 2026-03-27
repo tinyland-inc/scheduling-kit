@@ -1,6 +1,6 @@
 {
   "name": "@tummycrypt/scheduling-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Backend-agnostic scheduling components with alternative payment support",
   "type": "module",
   "exports": {
@@ -92,7 +92,6 @@
     "@tummycrypt/tinyland-auth-pg": "0.1.0",
     "drizzle-orm": "0.39.3",
     "effect": "^3.19.14",
-    "fp-ts": "^2.16.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
@@ -133,7 +132,7 @@
     "stripe",
     "acuity",
     "calcom",
-    "fp-ts",
+    "effect",
     "functional"
   ],
   "license": "MIT",

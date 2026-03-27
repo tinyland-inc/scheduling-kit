@@ -3,8 +3,11 @@
  * Central export for all test utilities
  */
 
-// fp-ts assertion helpers
-export * from './fp-ts.js';
+// Effect assertion helpers (replaces fp-ts)
+export * from './effect.js';
+
+// Legacy fp-ts helpers (deprecated — kept for gradual test migration)
+// export * from './fp-ts.js';
 
 // Factory functions and arbitraries
 export * from './factories.js';

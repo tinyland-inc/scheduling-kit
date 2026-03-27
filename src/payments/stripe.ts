@@ -4,8 +4,7 @@
  * Stripe uses form-encoded bodies with `Authorization: Bearer sk_...`.
  */
 
-import * as TE from 'fp-ts/TaskEither';
-import { pipe } from 'fp-ts/function';
+import { Effect, pipe } from 'effect';
 import type {
   SchedulingResult,
   PaymentIntent,
@@ -147,7 +146,7 @@ export const createStripeAdapter = (config: StripeAdapterConfig): PaymentAdapter
     displayName: 'Credit/Debit Card',
     icon: 'stripe',
 
-    isAvailable: () => TE.right(!!config.secretKey),
+    isAvailable: () => Effect.succeed(!!config.secretKey),
 
     createIntent: ({ amount, currency, description, metadata, idempotencyKey }) =>
       pipe(
@@ -175,7 +174,7 @@ export const createStripeAdapter = (config: StripeAdapterConfig): PaymentAdapter
           },
           (e) => Errors.payment('CREATE_INTENT_FAILED', String(e), 'stripe', true)
         ),
-        TE.map(toPaymentIntent)
+        Effect.map(toPaymentIntent)
       ),
 
     capturePayment: (intentId) =>
@@ -184,7 +183,7 @@ export const createStripeAdapter = (config: StripeAdapterConfig): PaymentAdapter
           () => request<StripePaymentIntent>('GET', `/v1/payment_intents/${intentId}`),
           (e) => Errors.payment('CAPTURE_FAILED', String(e), 'stripe', false, intentId)
         ),
-        TE.map(toPaymentResult)
+        Effect.map(toPaymentResult)
       ),
 
     cancelIntent: (intentId) =>
@@ -193,7 +192,7 @@ export const createStripeAdapter = (config: StripeAdapterConfig): PaymentAdapter
           () => request<StripePaymentIntent>('POST', `/v1/payment_intents/${intentId}/cancel`),
           (e) => Errors.payment('CANCEL_FAILED', String(e), 'stripe', false, intentId)
         ),
-        TE.map(() => undefined)
+        Effect.map(() => undefined)
       ),
 
     refund: ({ transactionId, amount, reason }) =>
@@ -210,7 +209,7 @@ export const createStripeAdapter = (config: StripeAdapterConfig): PaymentAdapter
           },
           (e) => Errors.payment('REFUND_FAILED', String(e), 'stripe', false, transactionId)
         ),
-        TE.map((refund) => ({
+        Effect.map((refund) => ({
           success: refund.status === 'succeeded',
           refundId: refund.id,
           originalTransactionId: transactionId,

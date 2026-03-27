@@ -3,8 +3,7 @@
  * Uses PayPal SDK with enable-funding=venmo for Venmo payments
  */
 
-import * as TE from 'fp-ts/TaskEither';
-import { pipe } from 'fp-ts/function';
+import { Effect, pipe } from 'effect';
 import type {
   SchedulingResult,
   PaymentIntent,
@@ -179,7 +178,7 @@ export const createVenmoAdapter = (config: VenmoAdapterConfig): PaymentAdapter =
     displayName: 'Venmo',
     icon: 'venmo',
 
-    isAvailable: () => TE.right(true),
+    isAvailable: () => Effect.succeed(true),
 
     createIntent: ({ amount, currency, description, metadata, idempotencyKey }) =>
       pipe(
@@ -213,7 +212,7 @@ export const createVenmoAdapter = (config: VenmoAdapterConfig): PaymentAdapter =
           ),
           (e) => Errors.payment('CREATE_INTENT_FAILED', String(e), 'venmo', true)
         ),
-        TE.map((order) => toPaymentIntent(order, amount, currency))
+        Effect.map((order) => toPaymentIntent(order, amount, currency))
       ),
 
     capturePayment: (intentId) =>
@@ -222,7 +221,7 @@ export const createVenmoAdapter = (config: VenmoAdapterConfig): PaymentAdapter =
           () => request<PayPalOrder>('POST', `/v2/checkout/orders/${intentId}/capture`),
           (e) => Errors.payment('CAPTURE_FAILED', String(e), 'venmo', false, intentId)
         ),
-        TE.map(toPaymentResult)
+        Effect.map(toPaymentResult)
       ),
 
     cancelIntent: (intentId) =>
@@ -263,7 +262,7 @@ export const createVenmoAdapter = (config: VenmoAdapterConfig): PaymentAdapter =
           },
           (e) => Errors.payment('REFUND_FAILED', String(e), 'venmo', false, transactionId)
         ),
-        TE.map((refund) => ({
+        Effect.map((refund) => ({
           success: refund.status === 'COMPLETED',
           refundId: refund.id,
           originalTransactionId: transactionId,
@@ -299,40 +298,38 @@ export const createVenmoAdapter = (config: VenmoAdapterConfig): PaymentAdapter =
       ),
 
     parseWebhook: (payload) =>
-      pipe(
-        TE.tryCatch(
-          async () => {
-            const event = JSON.parse(payload) as {
-              event_type: string;
-              resource: {
-                id: string;
-                amount: { value: string; currency_code: string };
-                create_time: string;
-                custom_id?: string;
-              };
+      Effect.tryPromise({
+        try: async () => {
+          const event = JSON.parse(payload) as {
+            event_type: string;
+            resource: {
+              id: string;
+              amount: { value: string; currency_code: string };
+              create_time: string;
+              custom_id?: string;
             };
+          };
 
-            const typeMap: Record<string, PaymentWebhookEvent['type']> = {
-              'PAYMENT.CAPTURE.COMPLETED': 'payment.completed',
-              'PAYMENT.CAPTURE.DENIED': 'payment.failed',
-              'PAYMENT.CAPTURE.REFUNDED': 'refund.completed',
-            };
+          const typeMap: Record<string, PaymentWebhookEvent['type']> = {
+            'PAYMENT.CAPTURE.COMPLETED': 'payment.completed',
+            'PAYMENT.CAPTURE.DENIED': 'payment.failed',
+            'PAYMENT.CAPTURE.REFUNDED': 'refund.completed',
+          };
 
-            return {
-              type: typeMap[event.event_type] ?? 'payment.failed',
-              transactionId: event.resource.id,
-              amount: Math.round(parseFloat(event.resource.amount.value) * 100),
-              currency: event.resource.amount.currency_code,
-              timestamp: event.resource.create_time,
-              metadata: event.resource.custom_id
-                ? JSON.parse(event.resource.custom_id)
-                : undefined,
-              raw: event,
-            } satisfies PaymentWebhookEvent;
-          },
-          (e) => Errors.payment('WEBHOOK_PARSE_FAILED', String(e), 'venmo', false)
-        )
-      ),
+          return {
+            type: typeMap[event.event_type] ?? 'payment.failed',
+            transactionId: event.resource.id,
+            amount: Math.round(parseFloat(event.resource.amount.value) * 100),
+            currency: event.resource.amount.currency_code,
+            timestamp: event.resource.create_time,
+            metadata: event.resource.custom_id
+              ? JSON.parse(event.resource.custom_id)
+              : undefined,
+            raw: event,
+          } satisfies PaymentWebhookEvent;
+        },
+        catch: (e) => Errors.payment('WEBHOOK_PARSE_FAILED', String(e), 'venmo', false),
+      }),
 
     getClientConfig: () => ({
       name: 'venmo',

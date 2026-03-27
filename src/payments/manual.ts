@@ -3,7 +3,7 @@
  * For cash, check, Zelle, and other manual payment methods
  */
 
-import * as TE from 'fp-ts/TaskEither';
+import { Effect } from 'effect';
 import type {
   SchedulingResult,
   PaymentIntent,
@@ -37,7 +37,7 @@ export const createManualPaymentAdapter = (
     displayName,
     icon: 'cash',
 
-    isAvailable: () => TE.right(config.methods.length > 0),
+    isAvailable: () => Effect.succeed(config.methods.length > 0),
 
     createIntent: ({ amount, currency, description, idempotencyKey }) => {
       const intent: PaymentIntent = {
@@ -52,7 +52,7 @@ export const createManualPaymentAdapter = (
         // Manual payments don't expire
       };
 
-      return TE.right(intent);
+      return Effect.succeed(intent);
     },
 
     capturePayment: (intentId) => {
@@ -71,10 +71,10 @@ export const createManualPaymentAdapter = (
         },
       };
 
-      return TE.right(result);
+      return Effect.succeed(result);
     },
 
-    cancelIntent: () => TE.right(undefined),
+    cancelIntent: () => Effect.succeed(undefined),
 
     refund: ({ transactionId }) => {
       // Manual refunds are just recorded, not processed
@@ -87,13 +87,13 @@ export const createManualPaymentAdapter = (
         timestamp: new Date().toISOString(),
       };
 
-      return TE.right(result);
+      return Effect.succeed(result);
     },
 
-    verifyWebhook: () => TE.right(true), // No webhooks for manual
+    verifyWebhook: () => Effect.succeed(true), // No webhooks for manual
 
     parseWebhook: () =>
-      TE.left(Errors.payment('NO_WEBHOOKS', 'Manual payments do not support webhooks', methodName, false)),
+      Effect.fail(Errors.payment('NO_WEBHOOKS', 'Manual payments do not support webhooks', methodName, false)),
 
     getClientConfig: () => ({
       name: methodName,
